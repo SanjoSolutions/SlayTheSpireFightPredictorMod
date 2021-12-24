@@ -25,9 +25,6 @@ import static FightPredictor.util.HelperMethods.formatNum;
 
 public class RenderValuePatches {
     private static final UIStrings uiStrings = CardCrawlGame.languagePack.getUIString(FightPredictor.CARD_REWARD_VALUE_PREDICTION_ID);
-    private static final String curActPredictionText = uiStrings.TEXT[0];
-    private static final String nextActPredictionText = uiStrings.TEXT[1];
-    private static final String percentileText = uiStrings.TEXT[2];
 
     @SpirePatch(clz = CardRewardScreen.class, method = "renderTwitchVotes")
     public static class RemoveTwitchVotes {
@@ -52,25 +49,25 @@ public class RenderValuePatches {
                 if (scores.containsKey(c)) {
                     Map<Integer, Float> scoresByAct = scores.get(c);
 
-                    float curActScore;
-                    if (AbstractDungeon.floorNum == 16 || AbstractDungeon.floorNum == 33) {
-                        curActScore = 9999f;
-                    } else {
-                        curActScore = scoresByAct.get(AbstractDungeon.actNum);
+                    StringBuilder text = new StringBuilder();
+
+                    for (int actNumber = AbstractDungeon.actNum; actNumber <= 4; actNumber++) {
+                        float score;
+                        if (actNumber == AbstractDungeon.actNum && (AbstractDungeon.floorNum == 16 || AbstractDungeon.floorNum == 33)) {
+                            score = 9999f;
+                        } else {
+                            score = scoresByAct.getOrDefault(actNumber, 9999f);
+                        }
+
+                        text.append(uiStrings.TEXT[actNumber - 1] + ": TAB " + formatNum(score) + " NL ");
                     }
 
-                    float nextAct;
-                    nextAct = scoresByAct.getOrDefault(AbstractDungeon.actNum + 1, 9999f);
-
                     int percentile = FightPredictor.percentiles.getOrDefault(c.name, Integer.MAX_VALUE);
+                    text.append(uiStrings.TEXT[4] + ":   " + formatPercentile(percentile));
 
                     FontHelper.renderSmartText(sb,
                             FontHelper.topPanelAmountFont,
-                            curActPredictionText + ": TAB " + formatNum(curActScore)
-                                    + " NL "
-                                    + nextActPredictionText + ": TAB " + formatNum(nextAct)
-                                    + " NL "
-                                    + percentileText + ":   " + formatPercentile(percentile),
+                            text.toString(),
                             c.hb.x,
                             c.hb.y - heightBuffer,
                             Color.WHITE);

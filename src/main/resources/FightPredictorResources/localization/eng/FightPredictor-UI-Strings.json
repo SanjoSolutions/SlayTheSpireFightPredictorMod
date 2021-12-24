@@ -9,8 +9,10 @@
   },
   "FightPredictor:Card Reward Value Prediction": {
     "TEXT": [
-      "This act",
-      "Next act",
+      "Act 1",
+      "Act 2",
+      "Act 3",
+      "Act 4",
       "Percentile"
     ]
   }
