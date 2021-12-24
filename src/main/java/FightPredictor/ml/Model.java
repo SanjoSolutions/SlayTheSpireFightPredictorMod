@@ -1,14 +1,14 @@
 package FightPredictor.ml;
 
 import FightPredictor.FightPredictor;
+import org.tensorflow.RawTensor;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.Tensor;
+import org.tensorflow.ndarray.*;
+import org.tensorflow.ndarray.buffer.FloatDataBuffer;
 import org.tensorflow.proto.framework.SignatureDef;
 import org.tensorflow.proto.framework.TensorInfo;
-import org.tensorflow.tools.ndarray.FloatNdArray;
-import org.tensorflow.tools.ndarray.impl.dense.FloatDenseNdArray;
 import org.tensorflow.types.TFloat32;
-import org.tensorflow.tools.ndarray.StdArrays;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,11 +62,11 @@ public class Model {
         basicMatrix[0] = inputVector;
 
         FloatNdArray fa = StdArrays.ndCopyOf(basicMatrix);
-        Tensor<TFloat32> inputMatrix = TFloat32.tensorOf(fa);
+        Tensor inputMatrix = TFloat32.tensorOf((NdArray<Float>)fa);
 
         // Run inference
         try {
-            List<Tensor<?>> output = model.session()
+            List<Tensor> output = model.session()
                     .runner()
                     .feed(inputOp, inputMatrix)
                     .fetch(outputOp)
@@ -79,9 +79,8 @@ public class Model {
             }
 
             // Get prediction
-            Tensor<?> t = output.get(0);
-            Tensor<TFloat32> tCast = (Tensor<TFloat32>) t;
-            return tCast.data().getFloat();
+            Tensor t = output.get(0);
+            return t.asRawTensor().data().asFloats().getFloat(0);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -92,24 +91,23 @@ public class Model {
 
     public float[] predict(float[][] inputMatrix) {
         FloatNdArray fa = StdArrays.ndCopyOf(inputMatrix);
-        Tensor<TFloat32> tensorInputMatrix = TFloat32.tensorOf(fa);
+        Tensor tensorInputMatrix = TFloat32.tensorOf((NdArray<Float>)fa);
 
         // Run inference
         try {
-            List<Tensor<?>> output = model.session()
+            List<Tensor> output = model.session()
                     .runner()
                     .feed(inputOp, tensorInputMatrix)
                     .fetch(outputOp)
                     .run();
 
             // Get prediction
-            Tensor<?> t = output.get(0);
-            Tensor<TFloat32> tCast = (Tensor<TFloat32>) t;
-            TFloat32 tCast2 = tCast.data();
-            int size = (int) tCast.data().shape().size(0);
+            RawTensor t = output.get(0).asRawTensor();
+            FloatDataBuffer tCast2 = t.data().asFloats();
+            int size = (int)tCast2.size();
             float[] returnVals = new float[size];
             for (int i = 0; i < size; i++) {
-                returnVals[i] = tCast2.getFloat(i, 0);
+                returnVals[i] = tCast2.getFloat(i);
             }
             return returnVals;
 
