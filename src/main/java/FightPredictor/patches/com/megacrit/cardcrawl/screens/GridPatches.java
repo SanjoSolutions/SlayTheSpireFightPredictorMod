@@ -27,10 +27,10 @@ public class GridPatches {
     public static void Postfix(GridCardSelectScreen __instance, CardGroup group, int numCards, String tipMsg, boolean forUpgrade, boolean forTransform, boolean canCancel, boolean forPurge) {
         if (forUpgrade) {
             List<AbstractCard> upgradeableCards = AbstractDungeon.player.masterDeck.getUpgradableCards().group;
-            FightPredictor.upgradeEvaluations = CardEvaluationData.createByUpgrading(upgradeableCards, AbstractDungeon.actNum, Math.min(AbstractDungeon.actNum + 1, 4));
+            FightPredictor.upgradeEvaluations = CardEvaluationData.createByUpgrading(upgradeableCards, AbstractDungeon.actNum, 4);
         } else if (forPurge || forTransform) {
             List<AbstractCard> purgeableCards = AbstractDungeon.player.masterDeck.getPurgeableCards().group;
-            FightPredictor.purgeEvaluations = CardEvaluationData.createByRemoving(purgeableCards, AbstractDungeon.actNum, Math.min(AbstractDungeon.actNum + 1, 4));
+            FightPredictor.purgeEvaluations = CardEvaluationData.createByRemoving(purgeableCards, AbstractDungeon.actNum, 4);
         }
     }
 }
