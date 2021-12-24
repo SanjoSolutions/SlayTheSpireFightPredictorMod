@@ -37,21 +37,22 @@ public class HelperMethods {
 
         if (scores.containsKey(c)) {
             Map<Integer, Float> scoresByAct = scores.get(c);
-            float currentAct = scoresByAct.get(AbstractDungeon.actNum);
 
-            float nextAct;
-            nextAct = scoresByAct.getOrDefault(AbstractDungeon.actNum + 1, 9999f);
+            float[] scores2 = determineScores(scores, c);
 
             // Almost all upgrades are always good, so set negative values to low positive value
             if (forUpgrade) {
-                if (currentAct < 0f) {
-                    currentAct = 0.03f;
+                if (scores2[0] < 0f) {
+                    scores2[0] = 0.03f;
                 }
-                if (nextAct < 0f) {
-                    nextAct = 0.04f;
+                for (int index = 1; index < scores2.length; index++) {
+                    if (scores2[index] < 0f) {
+                        scores2[index] = 0.04f;
+                    }
                 }
             }
-            return format(currentAct, nextAct);
+
+            return format(scores2);
         } else {
             return "";
         }
@@ -62,18 +63,32 @@ public class HelperMethods {
 
         if (scores.containsKey(relic)) {
             Map<Integer, Float> scoresByAct = scores.get(relic);
-            float currentAct = scoresByAct.get(AbstractDungeon.actNum);
 
-            float nextAct;
-            nextAct = scoresByAct.getOrDefault(AbstractDungeon.actNum + 1, 9999f);
+            float[] scores2 = determineScores(scores, relic);
 
-            return format(currentAct, nextAct);
+            return format(scores2);
         } else {
             return "";
         }
     }
 
-    private static String format(float currentAct, float nextAct) {
-        return HelperMethods.formatNum(currentAct) + " | " + HelperMethods.formatNum(nextAct);
+    private static float[] determineScores(Map<Object, Map<Integer, Float>> scores, Object object) {
+        Map<Integer, Float> scoresByAct = scores.get(object);
+
+        float[] scores2 = new float[4 - AbstractDungeon.actNum + 1];
+        for (int actNumber = AbstractDungeon.actNum; actNumber <= 4; actNumber++) {
+            int index = actNumber - AbstractDungeon.actNum;
+            scores2[index] = scoresByAct.getOrDefault(actNumber, 9999f);
+        }
+
+        return scores2;
+    }
+
+    private static String format(float[] scores) {
+        StringBuilder stringBuilder = new StringBuilder(HelperMethods.formatNum(scores[0]));
+        for (int index = 1; index < scores.length; index++) {
+            stringBuilder.append(" | " + HelperMethods.formatNum(scores[index]));
+        }
+        return stringBuilder.toString();
     }
 }

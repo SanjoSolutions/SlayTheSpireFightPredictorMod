@@ -43,16 +43,19 @@ public class ShopScreenPatches {
         }
 
         public static void updatePredictions() {
+            int startingAct = AbstractDungeon.actNum;
+            int endingAct = 4;
+
             FightPredictor.cardChoicesEvaluations = CardEvaluationData.createByAdding(
                     InitCardHook.allCards,
-                    AbstractDungeon.actNum,
-                    Math.min(AbstractDungeon.actNum + 1, 4)
+                    startingAct,
+                    endingAct
             );
 
             FightPredictor.relicChoiceEvaluations = CardEvaluationData.createByAddingRelic(
                     relics.stream().map(relic -> relic.relic).collect(Collectors.toList()),
-                    AbstractDungeon.actNum,
-                    Math.min(AbstractDungeon.actNum + 1, 4)
+                    startingAct,
+                    endingAct
             );
         }
     }
@@ -109,15 +112,30 @@ public class ShopScreenPatches {
             try {
                 Field relicsField = __instance.getClass().getDeclaredField("relics");
                 relicsField.setAccessible(true);
-                for (StoreRelic relic : (ArrayList<StoreRelic>)relicsField.get(__instance)) {
-                    renderPrediction(spriteBatch, relic);
+                ArrayList<StoreRelic> relics = (ArrayList<StoreRelic>) relicsField.get(__instance);
+                for (int index = 0; index < relics.size(); index++) {
+                    StoreRelic relic = relics.get(index);
+                    float offsetY = determineOffsetY(index, relics.size());
+                    renderPrediction(spriteBatch, relic, offsetY);
                 }
             } catch (NoSuchFieldException | IllegalAccessException exception) {
                 // Empty catch block
             }
         }
 
-        public static void renderPrediction(SpriteBatch spriteBatch, StoreRelic relic) {
+        private static float determineOffsetY(int index, int length) {
+            float offsetY = 0;
+
+            if (index == 0) {
+                offsetY = -100;
+            } else if (index == length - 1) {
+                offsetY = -100;
+            }
+
+            return offsetY;
+        }
+
+        public static void renderPrediction(SpriteBatch spriteBatch, StoreRelic relic, float offsetY) {
             String text = HelperMethods.getPredictionStringForRelic(relic.relic, FightPredictor.relicChoiceEvaluations);
             spriteBatch.setColor(Color.WHITE);
             FontHelper.renderSmartText(
@@ -125,7 +143,7 @@ public class ShopScreenPatches {
                     FontHelper.cardDescFont_N,
                     text,
                     relic.relic.hb.cX - FontHelper.getSmartWidth(FontHelper.cardDescFont_N, text, Float.MAX_VALUE, FontHelper.cardDescFont_N.getSpaceWidth()) * 0.5f,
-                    relic.relic.hb.y + (12f * Settings.scale),
+                    relic.relic.hb.y + (12f * Settings.scale) + offsetY,
                     Color.WHITE
             );
         }
