@@ -19,13 +19,23 @@ public class ShopScreenPatches {
 
     @SpirePatch(clz = ShopScreen.class, method = "init")
     public static class InitCardHook {
+        public static List<AbstractCard> allCards = new ArrayList<>();
+
         @SpirePostfixPatch
         public static void patch(ShopScreen __instance, ArrayList<AbstractCard> coloredCards, ArrayList<AbstractCard> colorlessCards) {
-            List<AbstractCard> allCards = new ArrayList<>();
-            allCards.addAll(coloredCards);
-            allCards.addAll(colorlessCards);
+            InitCardHook.allCards = new ArrayList<>();
+            InitCardHook.allCards.addAll(coloredCards);
+            InitCardHook.allCards.addAll(colorlessCards);
 
-            FightPredictor.cardChoicesEvaluations = CardEvaluationData.createByAdding(allCards, AbstractDungeon.actNum, Math.min(AbstractDungeon.actNum + 1, 4));
+            InitCardHook.updatePredictions();
+        }
+
+        public static void updatePredictions() {
+            FightPredictor.cardChoicesEvaluations = CardEvaluationData.createByAdding(
+                    InitCardHook.allCards,
+                    AbstractDungeon.actNum,
+                    Math.min(AbstractDungeon.actNum + 1, 4)
+            );
         }
     }
 
@@ -50,6 +60,27 @@ public class ShopScreenPatches {
                     c.hb.cX - FontHelper.getSmartWidth(FontHelper.cardDescFont_N, s, Float.MAX_VALUE, FontHelper.cardDescFont_N.getSpaceWidth()) * 0.5f,
                     c.hb.y + (12f * Settings.scale),
                     Color.WHITE);
+        }
+    }
+
+    @SpirePatch(clz = ShopScreen.class, method = "purchaseCard")
+    public static class ShopScreenPurchaseCardPatch {
+        @SpirePostfixPatch
+        public static void patch(ShopScreen __instance, AbstractCard hoveredCard) {
+            InitCardHook.updatePredictions();
+        }
+    }
+
+    @SpirePatch(clz = ShopScreen.class, method = "updatePurge")
+    public static class ShopScreenPurgeCardPatch {
+        static boolean wasPurgeAvailableLastUpdate = true;
+
+        @SpirePostfixPatch
+        public static void postUpdatePurge() {
+            if (wasPurgeAvailableLastUpdate && !AbstractDungeon.shopScreen.purgeAvailable) {
+                InitCardHook.updatePredictions();
+            }
+            wasPurgeAvailableLastUpdate = AbstractDungeon.shopScreen.purgeAvailable;
         }
     }
 }
