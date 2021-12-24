@@ -46,7 +46,7 @@ public class RenderValuePatches {
             if (FightPredictor.cardChoicesEvaluations == null) {
                 return;
             }
-            Map<AbstractCard, Map<Integer, Float>> scores = FightPredictor.cardChoicesEvaluations.getDiffs();
+            Map<Object, Map<Integer, Float>> scores = FightPredictor.cardChoicesEvaluations.getDiffs();
             for(AbstractCard c : __instance.rewardGroup) {
 
                 if (scores.containsKey(c)) {

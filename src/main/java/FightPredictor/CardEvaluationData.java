@@ -4,6 +4,7 @@ import FightPredictor.util.BaseGameConstants;
 import FightPredictor.util.StatEvaluation;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.relics.AbstractRelic;
 
 import java.util.*;
 
@@ -13,10 +14,10 @@ public class CardEvaluationData {
     private final StatEvaluation skip;
 
     // Evaluations for each card
-    private final Map<AbstractCard, StatEvaluation> evals;
+    private final Map<Object, StatEvaluation> evals;
 
     // Maps a card to its score by act. diffs.get(card).get(actNum) => score.
-    private final Map<AbstractCard, Map<Integer, Float>> diffs;
+    private final Map<Object, Map<Integer, Float>> diffs;
 
     // Acts that are supported. Add more acts as needed
     private final Set<Integer> supportedActs;
@@ -111,6 +112,42 @@ public class CardEvaluationData {
         return ced;
     }
 
+    public static CardEvaluationData createByAddingRelic(
+            List<AbstractRelic> relicsToEvaluate,
+            int startingAct,
+            int endingAct
+    ) {
+        CardEvaluationData ced = new CardEvaluationData(startingAct, endingAct);
+        Set<String> enemies = getAllEnemies(startingAct, endingAct);
+
+        List<AbstractCard> newDeck = new ArrayList<>(AbstractDungeon.player.masterDeck.group);
+
+        for (AbstractRelic relic : relicsToEvaluate) {
+            ArrayList<AbstractRelic> relics = new ArrayList<AbstractRelic>(AbstractDungeon.player.relics);
+            relics.add(relic);
+            StatEvaluation se = new StatEvaluation(
+                    newDeck,
+                    relics,
+                    AbstractDungeon.player.maxHealth,
+                    AbstractDungeon.player.currentHealth,
+                    AbstractDungeon.ascensionLevel,
+                    false,
+                    enemies
+            );
+            ced.evals.put(relic, se);
+
+            // Calculate score for each act by comparing to skip
+            Map<Integer, Float> diffsByAct = new HashMap<>();
+            for (int act = startingAct; act <= endingAct; act++) {
+                float diff = StatEvaluation.getWeightedAvg(se, ced.skip, act);
+                diffsByAct.put(act, diff);
+            }
+            ced.diffs.put(relic, diffsByAct);
+        }
+
+        return ced;
+    }
+
     public void addAdditionalActs(Set<Integer> actsToAdd) {
 
     }
@@ -127,11 +164,11 @@ public class CardEvaluationData {
         return skip;
     }
 
-    public Map<AbstractCard, StatEvaluation> getEvals() {
+    public Map<Object, StatEvaluation> getEvals() {
         return evals;
     }
 
-    public Map<AbstractCard, Map<Integer, Float>> getDiffs() {
+    public Map<Object, Map<Integer, Float>> getDiffs() {
         return diffs;
     }
 

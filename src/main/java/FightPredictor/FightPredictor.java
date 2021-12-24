@@ -53,6 +53,7 @@ public class FightPredictor implements
     public static CardEvaluationData cardChoicesEvaluations;
     public static CardEvaluationData upgradeEvaluations;
     public static CardEvaluationData purgeEvaluations;
+    public static CardEvaluationData relicChoiceEvaluations;
 
     public static ConcurrentMap<String, Integer> percentiles;
 

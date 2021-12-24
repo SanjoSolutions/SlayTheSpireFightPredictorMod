@@ -4,6 +4,7 @@ import FightPredictor.CardEvaluationData;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.events.city.TheLibrary;
+import com.megacrit.cardcrawl.relics.AbstractRelic;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -32,7 +33,7 @@ public class HelperMethods {
     }
 
     public static String getPredictionString(AbstractCard c, CardEvaluationData eval, boolean forUpgrade) {
-        Map<AbstractCard, Map<Integer, Float>> scores = eval.getDiffs();
+        Map<Object, Map<Integer, Float>> scores = eval.getDiffs();
 
         if (scores.containsKey(c)) {
             Map<Integer, Float> scoresByAct = scores.get(c);
@@ -50,9 +51,29 @@ public class HelperMethods {
                     nextAct = 0.04f;
                 }
             }
-            return HelperMethods.formatNum(currentAct) + " | " + HelperMethods.formatNum(nextAct);
+            return format(currentAct, nextAct);
         } else {
             return "";
         }
+    }
+
+    public static String getPredictionStringForRelic(AbstractRelic relic, CardEvaluationData cardEvaluationData) {
+        Map<Object, Map<Integer, Float>> scores = cardEvaluationData.getDiffs();
+
+        if (scores.containsKey(relic)) {
+            Map<Integer, Float> scoresByAct = scores.get(relic);
+            float currentAct = scoresByAct.get(AbstractDungeon.actNum);
+
+            float nextAct;
+            nextAct = scoresByAct.getOrDefault(AbstractDungeon.actNum + 1, 9999f);
+
+            return format(currentAct, nextAct);
+        } else {
+            return "";
+        }
+    }
+
+    private static String format(float currentAct, float nextAct) {
+        return HelperMethods.formatNum(currentAct) + " | " + HelperMethods.formatNum(nextAct);
     }
 }
