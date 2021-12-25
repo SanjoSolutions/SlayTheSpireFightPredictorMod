@@ -4,9 +4,14 @@ import FightPredictor.FightPredictor;
 import FightPredictor.ml.ModelUtils;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.map.MapRoomNode;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
+import com.megacrit.cardcrawl.rooms.MonsterRoom;
+import com.megacrit.cardcrawl.rooms.MonsterRoomBoss;
+import com.megacrit.cardcrawl.rooms.MonsterRoomElite;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class StatEvaluation {
 
@@ -64,42 +69,76 @@ public class StatEvaluation {
      *
      * @param o1 Positive values indicate that this load out is predicted to be better
      * @param o2 Negative values indicate that this load out is predicted to be better
-     * @param actNum Act to get average for
+     * @param actNumber Act to get average for
      * @return Weighted average of average damage taken per fight
      */
-    public static float getWeightedAvg(StatEvaluation o1, StatEvaluation o2, int actNum) {
-        float o1HallwayExpectedDmg;
-        float o2HallwayExpectedDmg;
-        if (actNum == 4) {
-            o1HallwayExpectedDmg = 0f;
-            o2HallwayExpectedDmg = 0f;
+    public static float determineWeightedScoreDifference(StatEvaluation o1, StatEvaluation o2, int actNumber) {
+        float score1 = determineWeightedScore(o1, actNumber);
+        float score2 = determineWeightedScore(o2, actNumber);
+        return score1 - score2;
+    }
+
+    private static float determineWeightedScore(StatEvaluation statEvaluation, int actNumber) {
+        float score;
+
+        if (actNumber == AbstractDungeon.actNum) {
+            score = determineWeightedScoreForCurrentAct(statEvaluation);
         } else {
-            o1HallwayExpectedDmg = enemiesToAverage(BaseGameConstants.hallwayIDs, actNum, o1.predictions);
-            o2HallwayExpectedDmg = enemiesToAverage(BaseGameConstants.hallwayIDs, actNum, o2.predictions);
+            score = 0f;
         }
 
-        float o1EliteExpectedDmg = enemiesToAverage(BaseGameConstants.eliteIDs, actNum, o1.predictions);
-        float o2EliteExpectedDmg = enemiesToAverage(BaseGameConstants.eliteIDs, actNum, o2.predictions);
+        return score;
+    }
 
-        float o1BossExpectedDmg;
-        float o2BossExpectedDmg;
+    private static float determineWeightedScoreForCurrentAct(StatEvaluation statEvaluation) {
+        float score = 0;
 
-        if (actNum == AbstractDungeon.actNum) {
-            o1BossExpectedDmg = o1.predictions.get(AbstractDungeon.bossKey);
-            o2BossExpectedDmg = o2.predictions.get(AbstractDungeon.bossKey);
-        } else {
-            o1BossExpectedDmg = enemiesToAverage(BaseGameConstants.bossIDs, actNum, o1.predictions);
-            o2BossExpectedDmg = enemiesToAverage(BaseGameConstants.bossIDs, actNum, o2.predictions);
+        List<MapRoomNode> nodes = new ArrayList<MapRoomNode>();
+        nodes.add(AbstractDungeon.getCurrMapNode());
+        int levelIndex = 0;
+
+        while (nodes.size() >= 1) {
+            float weight = 1f / (float) nodes.size();
+
+            for (MapRoomNode node : nodes) {
+                if (node.room instanceof MonsterRoom) {
+                    Map<Integer, Set<String>> ids;
+                    if (node.room instanceof MonsterRoomElite) {
+                        ids = BaseGameConstants.eliteIDs;
+                    } else if (node.room instanceof MonsterRoomBoss) {
+                        ids = BaseGameConstants.bossIDs;
+                    } else {
+                        ids = BaseGameConstants.hallwayIDs;
+                    }
+                    float nodeScore = enemiesToAverage(ids, AbstractDungeon.actNum, statEvaluation.predictions);
+                    score += weight * nodeScore;
+                }
+            }
+
+            int potentialChildrenLevelIndex = levelIndex + 1;
+
+            if (potentialChildrenLevelIndex >= AbstractDungeon.map.size()) {
+                break;
+            }
+
+            nodes = nodes.stream()
+                    .flatMap(node -> getChildren(node, potentialChildrenLevelIndex).stream())
+                    .collect(Collectors.toList());
+            levelIndex++;
         }
 
-        float hallwayDiff = o2HallwayExpectedDmg - o1HallwayExpectedDmg;
-        float eliteDiff = o2EliteExpectedDmg - o1EliteExpectedDmg;
-        float bossDiff = o2BossExpectedDmg - o1BossExpectedDmg;
+        return score;
+    }
 
-        float numerator = (bossDiff * o2BossExpectedDmg) + (eliteDiff * o2EliteExpectedDmg) + (hallwayDiff * o2HallwayExpectedDmg);
-        float denominator = o2BossExpectedDmg + o2EliteExpectedDmg + o2HallwayExpectedDmg;
-
-        return numerator / denominator;
+    private static ArrayList<MapRoomNode> getChildren(MapRoomNode node, int potentialChildrenLevelIndex) {
+        ArrayList<MapRoomNode> potentialChildrenLevel = AbstractDungeon.map.get(potentialChildrenLevelIndex);
+        ArrayList<MapRoomNode> children = new ArrayList<>();
+        for (MapRoomNode potentialChild : potentialChildrenLevel) {
+            if (potentialChild.getParents().stream().anyMatch(parent -> parent == node)) {
+                children.add(potentialChild);
+            }
+        }
+        return children;
     }
 
     public static float getWeightedAvgEliteAndBoss(StatEvaluation o1, StatEvaluation o2, int actNum) {

@@ -104,7 +104,7 @@ public class CardEvaluationData {
             // Calculate score for each act by comparing to skip
             Map<Integer, Float> diffsByAct = new HashMap<>();
             for (int act = startingAct; act <= endingAct; act++) {
-                float diff = StatEvaluation.getWeightedAvg(se, ced.skip, act);
+                float diff = StatEvaluation.determineWeightedScoreDifference(se, ced.skip, act);
                 diffsByAct.put(act, diff);
             }
             ced.diffs.put(c, diffsByAct);
@@ -139,7 +139,7 @@ public class CardEvaluationData {
             // Calculate score for each act by comparing to skip
             Map<Integer, Float> diffsByAct = new HashMap<>();
             for (int act = startingAct; act <= endingAct; act++) {
-                float diff = StatEvaluation.getWeightedAvg(se, ced.skip, act);
+                float diff = StatEvaluation.determineWeightedScoreDifference(se, ced.skip, act);
                 diffsByAct.put(act, diff);
             }
             ced.diffs.put(relic, diffsByAct);
