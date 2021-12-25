@@ -24,7 +24,6 @@ public class CombatRewardScreenPatches {
                     .collect(Collectors.toList());
 
             FightPredictor.cardChoicesEvaluations = CardEvaluationData.createByAdding(cards, AbstractDungeon.actNum, 4);
-
         }
     }
 }
