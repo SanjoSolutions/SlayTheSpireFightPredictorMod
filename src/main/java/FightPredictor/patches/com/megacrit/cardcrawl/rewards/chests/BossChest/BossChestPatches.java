@@ -14,7 +14,7 @@ public class BossChestPatches {
     public static class ConstructorPatch {
         @SpirePostfixPatch
         public static void postConstructor(BossChest __instance) {
-            int startingAct = AbstractDungeon.actNum;
+            int startingAct = AbstractDungeon.actNum + 1;
             int endingAct = 4;
 
             FightPredictor.relicChoiceEvaluations = CardEvaluationData.createByAddingRelic(

@@ -16,13 +16,14 @@ import com.badlogic.gdx.math.MathUtils;
 import com.evacipated.cardcrawl.modthespire.lib.SpireInitializer;
 import com.google.gson.Gson;
 import com.megacrit.cardcrawl.cards.AbstractCard;
-import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.CardLibrary;
 import com.megacrit.cardcrawl.localization.UIStrings;
+import com.megacrit.cardcrawl.map.MapRoomNode;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
+import com.megacrit.cardcrawl.rooms.RestRoom;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -56,6 +57,8 @@ public class FightPredictor implements
     public static CardEvaluationData relicChoiceEvaluations;
 
     public static ConcurrentMap<String, Integer> percentiles;
+
+    public static HashMap<MapRoomNode, Integer> predictedHPOnMapNodes;
 
     public FightPredictor() {
         logger.info("Subscribe to BaseMod hooks");
@@ -247,5 +250,41 @@ public class FightPredictor implements
             percentiles.put(cardsSortedByPrediction.get(i).name, per);
         }
         FightPredictor.percentiles = percentiles;
+    }
+
+    public static void generateDataForMapNodes() {
+        FightPredictor.predictedHPOnMapNodes = new HashMap<MapRoomNode, Integer>();
+
+        for (MapRoomNode node : AbstractDungeon.map.get(0)) {
+            predictedHPOnMapNodes.put(node, AbstractDungeon.player.currentHealth);
+        }
+
+        for (int levelIndex = 1; levelIndex < AbstractDungeon.map.size(); levelIndex++) {
+            ArrayList<MapRoomNode> level = AbstractDungeon.map.get(levelIndex);
+            for (MapRoomNode node : level) {
+                if (node == AbstractDungeon.currMapNode) {
+                    predictedHPOnMapNodes.put(node, AbstractDungeon.player.currentHealth);
+                } else {
+                    int previousHP = node.getParents().stream()
+                            .map(parent -> FightPredictor.predictedHPOnMapNodes.get(parent))
+                            .max(Float::compare)
+                            .orElse(AbstractDungeon.player.currentHealth)
+                            .intValue();
+                    int predictedHP;
+                    if (previousHP == 0) {
+                        predictedHP = 0;
+                    } else {
+                        int predictedHPDifference;
+                        if (node.room instanceof RestRoom) {
+                            predictedHPDifference = 23;
+                        } else {
+                            predictedHPDifference = (int) -StatEvaluation.determineScoreForNode(node, AbstractDungeon.actNum);
+                        }
+                        predictedHP = Math.max(0, Math.min(previousHP + predictedHPDifference, AbstractDungeon.player.maxHealth));
+                    }
+                    predictedHPOnMapNodes.put(node, predictedHP);
+                }
+            }
+        }
     }
 }
