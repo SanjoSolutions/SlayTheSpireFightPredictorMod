@@ -5,6 +5,7 @@ import FightPredictor.ml.ModelUtils;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.ModHelper;
+import com.megacrit.cardcrawl.map.MapEdge;
 import com.megacrit.cardcrawl.map.MapRoomNode;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
 import com.megacrit.cardcrawl.rooms.MonsterRoom;
@@ -96,7 +97,7 @@ public class StatEvaluation {
 
         List<MapRoomNode> nodes = new ArrayList<MapRoomNode>();
         nodes.add(AbstractDungeon.getCurrMapNode());
-        int levelIndex = 0;
+        int distanceFromCurrentMapNode = 0;
 
         while (nodes.size() >= 1) {
             float weight = 1f / (float) nodes.size();
@@ -112,20 +113,12 @@ public class StatEvaluation {
                         ids = BaseGameConstants.hallwayIDs;
                     }
                     float nodeScore = enemiesToAverage(ids, AbstractDungeon.actNum, statEvaluation.predictions);
-                    score += weight * nodeScore;
+                    score += (1f / (distanceFromCurrentMapNode + 1)) * weight * nodeScore;
                 }
             }
 
-            int potentialChildrenLevelIndex = levelIndex + 1;
-
-            if (potentialChildrenLevelIndex >= AbstractDungeon.map.size()) {
-                break;
-            }
-
-            nodes = nodes.stream()
-                    .flatMap(node -> getChildren(node, potentialChildrenLevelIndex).stream())
-                    .collect(Collectors.toList());
-            levelIndex++;
+            nodes = getChildren(nodes);
+            distanceFromCurrentMapNode++;
         }
 
         return score;
@@ -225,14 +218,23 @@ public class StatEvaluation {
         return nodeScore;
     }
 
-    private static ArrayList<MapRoomNode> getChildren(MapRoomNode node, int potentialChildrenLevelIndex) {
-        ArrayList<MapRoomNode> potentialChildrenLevel = AbstractDungeon.map.get(potentialChildrenLevelIndex);
+    private static ArrayList<MapRoomNode> getChildren(List<MapRoomNode> nodes) {
         ArrayList<MapRoomNode> children = new ArrayList<>();
-        for (MapRoomNode potentialChild : potentialChildrenLevel) {
-            if (potentialChild.getParents().stream().anyMatch(parent -> parent == node)) {
-                children.add(potentialChild);
+
+        if (nodes.size() >= 1) {
+            int potentialChildrenLevel = nodes.get(0).y + 1;
+            ArrayList<ArrayList<MapRoomNode>> map = AbstractDungeon.map;
+            if (potentialChildrenLevel < map.size()) {
+                ArrayList<MapRoomNode> potentialChildren = map.get(potentialChildrenLevel);
+
+                for (MapRoomNode potentialChild : potentialChildren) {
+                    if (potentialChild.getParents().stream().anyMatch(parent -> nodes.contains(parent))) {
+                        children.add(potentialChild);
+                    }
+                }
             }
         }
+
         return children;
     }
 
