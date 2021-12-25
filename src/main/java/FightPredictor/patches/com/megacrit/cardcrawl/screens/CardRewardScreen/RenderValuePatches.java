@@ -11,9 +11,11 @@ import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.localization.UIStrings;
+import com.megacrit.cardcrawl.rewards.RewardItem;
 import com.megacrit.cardcrawl.screens.CardRewardScreen;
 import javassist.CannotCompileException;
 import javassist.CtBehavior;
+import FightPredictor.CardEvaluationData;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -25,6 +27,14 @@ import static FightPredictor.util.HelperMethods.formatNum;
 
 public class RenderValuePatches {
     private static final UIStrings uiStrings = CardCrawlGame.languagePack.getUIString(FightPredictor.CARD_REWARD_VALUE_PREDICTION_ID);
+
+    @SpirePatch(clz = CardRewardScreen.class, method = "open")
+    public static class OpenPatch {
+        @SpirePrefixPatch
+        public static void open(CardRewardScreen __instance, ArrayList<AbstractCard> cards, RewardItem rItem, String header) {
+            FightPredictor.cardChoicesEvaluations = CardEvaluationData.createByAdding(cards, AbstractDungeon.actNum, 4);
+        }
+    }
 
     @SpirePatch(clz = CardRewardScreen.class, method = "renderTwitchVotes")
     public static class RemoveTwitchVotes {
