@@ -85,6 +85,9 @@ public class StatEvaluation {
 
         if (actNumber == AbstractDungeon.actNum) {
             score = determineWeightedScoreForCurrentAct(statEvaluation);
+            for (int actNumber2 = actNumber + 1; actNumber2 <= 3; actNumber2++) {
+                score += determineWeightedScoreForAFollowingAct(statEvaluation, actNumber2);
+            }
         } else {
             score = determineWeightedScoreForAFollowingAct(statEvaluation, actNumber);
         }
