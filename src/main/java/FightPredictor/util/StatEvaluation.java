@@ -97,6 +97,7 @@ public class StatEvaluation {
 
         List<MapRoomNode> nodes = new ArrayList<MapRoomNode>();
         nodes.add(AbstractDungeon.getCurrMapNode());
+        nodes = getChildren(nodes);
         int distanceFromCurrentMapNode = 0;
 
         while (nodes.size() >= 1) {
@@ -107,19 +108,24 @@ public class StatEvaluation {
                     Map<Integer, Set<String>> ids;
                     if (node.room instanceof MonsterRoomElite) {
                         ids = BaseGameConstants.eliteIDs;
-                    } else if (node.room instanceof MonsterRoomBoss) {
-                        ids = BaseGameConstants.bossIDs;
-                    } else {
+                    } else if (!(node.room instanceof MonsterRoomBoss)) {
                         ids = BaseGameConstants.hallwayIDs;
+                    } else {
+                        ids = null;
                     }
-                    float nodeScore = enemiesToAverage(ids, AbstractDungeon.actNum, statEvaluation.predictions);
-                    score += (1f / (distanceFromCurrentMapNode + 1)) * weight * nodeScore;
+                    if (ids != null) {
+                        float nodeScore = enemiesToAverage(ids, AbstractDungeon.actNum, statEvaluation.predictions);
+                        score += weight * nodeScore;
+                    }
                 }
             }
 
             nodes = getChildren(nodes);
             distanceFromCurrentMapNode++;
         }
+
+        float nodeScore = enemiesToAverage(BaseGameConstants.bossIDs, AbstractDungeon.actNum, statEvaluation.predictions);
+        score += nodeScore;
 
         return score;
     }
