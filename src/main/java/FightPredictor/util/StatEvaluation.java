@@ -77,7 +77,7 @@ public class StatEvaluation {
     public static float determineWeightedScoreDifference(StatEvaluation o1, StatEvaluation o2, int actNumber) {
         float score1 = determineWeightedScore(o1, actNumber);
         float score2 = determineWeightedScore(o2, actNumber);
-        return score1 - score2;
+        return score2 - score1;
     }
 
     private static float determineWeightedScore(StatEvaluation statEvaluation, int actNumber) {
