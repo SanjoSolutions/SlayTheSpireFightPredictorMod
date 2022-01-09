@@ -80,7 +80,7 @@ public class Model {
 
             // Get prediction
             Tensor t = output.get(0);
-            return t.asRawTensor().data().asFloats().getFloat(0);
+            return t.asRawTensor().data().asFloats().getFloat(0) * 100f;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -107,7 +107,7 @@ public class Model {
             int size = (int)tCast2.size();
             float[] returnVals = new float[size];
             for (int i = 0; i < size; i++) {
-                returnVals[i] = tCast2.getFloat(i);
+                returnVals[i] = tCast2.getFloat(i) * 100f;
             }
             return returnVals;
 

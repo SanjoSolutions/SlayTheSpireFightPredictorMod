@@ -19,11 +19,15 @@ import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.CardLibrary;
+import com.megacrit.cardcrawl.helpers.PotionHelper;
+import com.megacrit.cardcrawl.helpers.RelicLibrary;
 import com.megacrit.cardcrawl.localization.UIStrings;
 import com.megacrit.cardcrawl.map.MapRoomNode;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
+import com.megacrit.cardcrawl.rooms.MonsterRoomBoss;
 import com.megacrit.cardcrawl.rooms.RestRoom;
+import com.megacrit.cardcrawl.rooms.TreasureRoomBoss;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -41,8 +45,7 @@ import java.util.stream.Collectors;
 public class FightPredictor implements
     PostInitializeSubscriber,
     OnStartBattleSubscriber,
-    EditStringsSubscriber
-{
+    EditStringsSubscriber {
     public static final Logger logger = LogManager.getLogger(FightPredictor.class.getName());
     private static String modID;
 
@@ -62,7 +65,7 @@ public class FightPredictor implements
 
     public FightPredictor() {
         logger.info("Subscribe to BaseMod hooks");
-        
+
         BaseMod.subscribe(this);
         setModID("FightPredictor");
 
@@ -70,7 +73,7 @@ public class FightPredictor implements
 
         logger.info("Done subscribing");
     }
-    
+
     public static void setModID(String ID) {
         Gson coolG = new Gson();
         InputStream in = FightPredictor.class.getResourceAsStream("/IDCheckStringsDONT-EDIT-AT-ALL.json");
@@ -85,7 +88,7 @@ public class FightPredictor implements
         }
         logger.info("Success! ID is " + modID);
     }
-    
+
     public static String getModID() {
         return modID;
     }
@@ -101,7 +104,7 @@ public class FightPredictor implements
     public static String getResourceDir() {
         return "FightPredictorResources/";
     }
-    
+
     @SuppressWarnings("unused")
     public static void initialize() {
         logger.info("========================= Initializing Fight Predictor. Hi. =========================");
@@ -122,7 +125,7 @@ public class FightPredictor implements
         path += language;
 
         BaseMod.loadCustomStringsFile(UIStrings.class,
-                path + "/FightPredictor-UI-Strings.json");
+            path + "/FightPredictor-UI-Strings.json");
     }
 
     @Override
@@ -143,8 +146,42 @@ public class FightPredictor implements
         logger.info("Expected 0.011. Got " + model.predict(testCase1));
         logger.info("Expected 0.124. Got " + model.predict(testCase2));
         logger.info("Expected 0.01. Got " + model.predict(testCase3));
+
+        // Code for dumping IDs
+//        ArrayList<AbstractRelic> relics = new ArrayList();
+//        relics.addAll(RelicLibrary.starterList);
+//        relics.addAll(RelicLibrary.commonList);
+//        relics.addAll(RelicLibrary.uncommonList);
+//        relics.addAll(RelicLibrary.rareList);
+//        relics.addAll(RelicLibrary.bossList);
+//        relics.addAll(RelicLibrary.specialList);
+//        relics.addAll(RelicLibrary.shopList);
+//        relics.addAll(RelicLibrary.redList);
+//        relics.addAll(RelicLibrary.greenList);
+//        relics.addAll(RelicLibrary.blueList);
+//        relics.addAll(RelicLibrary.whiteList);
+//        logger.info("relics: " + getRelicIds(relics));
+//        logger.info("potions: " + PotionHelper.getPotions(null, true));
+//        logger.info("attacks: " + getCardIds(getCardsOfType(AbstractCard.CardType.ATTACK)));
+//        logger.info("skills: " + getCardIds(getCardsOfType(AbstractCard.CardType.SKILL)));
+//        logger.info("powers: " + getCardIds(getCardsOfType(AbstractCard.CardType.POWER)));
+//        logger.info("curses: " + getCardIds(getCardsOfType(AbstractCard.CardType.CURSE)));
+//        logger.info("all cards: " + getCardIds(CardLibrary.getAllCards()));
     }
 
+    private List<AbstractCard> getCardsOfType(AbstractCard.CardType type) {
+        return CardLibrary.getAllCards().stream()
+            .filter(card -> card.type == type)
+            .collect(Collectors.toList());
+    }
+
+    private static List<String> getRelicIds(List<AbstractRelic> relics) {
+        return relics.stream().map(relic -> relic.relicId).collect(Collectors.toList());
+    }
+
+    private static List<String> getCardIds(List<AbstractCard> cards) {
+        return cards.stream().map(card -> card.cardID).collect(Collectors.toList());
+    }
 
     @Override
     public void receiveOnBattleStart(AbstractRoom abstractRoom) {
@@ -164,17 +201,27 @@ public class FightPredictor implements
         // Get the character's card pool
         ArrayList<AbstractCard> unupgradedCards = new ArrayList<>();
         switch (AbstractDungeon.player.chosenClass) {
-            case IRONCLAD: CardLibrary.addRedCards(unupgradedCards); break;
-            case THE_SILENT: CardLibrary.addGreenCards(unupgradedCards); break;
-            case DEFECT: CardLibrary.addBlueCards(unupgradedCards); break;
-            case WATCHER: CardLibrary.addPurpleCards(unupgradedCards); break;
-            default: return;
+            case IRONCLAD:
+                CardLibrary.addRedCards(unupgradedCards);
+                break;
+            case THE_SILENT:
+                CardLibrary.addGreenCards(unupgradedCards);
+                break;
+            case DEFECT:
+                CardLibrary.addBlueCards(unupgradedCards);
+                break;
+            case WATCHER:
+                CardLibrary.addPurpleCards(unupgradedCards);
+                break;
+            default:
+                return;
         }
 
         // Make copies of cards to protect from concurency problems
         // Add the upgraded cards to the pool
         List<AbstractCard> cardPool = unupgradedCards.stream().map(AbstractCard::makeCopy).collect(Collectors.toList());
-        List<AbstractCard> upgradedPool = cardPool.stream().map(AbstractCard::makeCopy).collect(Collectors.toList());;
+        List<AbstractCard> upgradedPool = cardPool.stream().map(AbstractCard::makeCopy).collect(Collectors.toList());
+        ;
         upgradedPool.forEach(AbstractCard::upgrade);
         cardPool.addAll(upgradedPool);
 
@@ -203,13 +250,13 @@ public class FightPredictor implements
         // Create skip
         Map<AbstractCard, Float> avgWeights = new HashMap<>();
         StatEvaluation skip = new StatEvaluation(
-                playerCards,
-                playerRelics,
-                maxHealth,
-                startingHealth,
-                AbstractDungeon.ascensionLevel,
-                false,
-                enemies
+            playerCards,
+            playerRelics,
+            maxHealth,
+            startingHealth,
+            AbstractDungeon.ascensionLevel,
+            false,
+            enemies
         );
 
         // Get the score for each card
@@ -218,13 +265,13 @@ public class FightPredictor implements
             newDeck.add(c);
 
             StatEvaluation evalWithCard = new StatEvaluation(
-                    newDeck,
-                    playerRelics,
-                    maxHealth,
-                    startingHealth,
-                    AbstractDungeon.ascensionLevel,
-                    false,
-                    enemies
+                newDeck,
+                playerRelics,
+                maxHealth,
+                startingHealth,
+                AbstractDungeon.ascensionLevel,
+                false,
+                enemies
             );
 
             // Compute the score
@@ -239,14 +286,14 @@ public class FightPredictor implements
 
         // Sort the cards by their prediction values ascending
         List<AbstractCard> cardsSortedByPrediction = avgWeights.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+            .sorted(Map.Entry.comparingByValue())
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
 
         // Map each card name to its percentile score
         ConcurrentMap<String, Integer> percentiles = new ConcurrentHashMap<>();
         for (int i = 0; i < cardsSortedByPrediction.size(); i++) {
-            int per = (int) Math.round(((double) i / (double) cardsSortedByPrediction.size()) * 100);
+            int per = (int)Math.round(((double)i / (double)cardsSortedByPrediction.size()) * 100);
             percentiles.put(cardsSortedByPrediction.get(i).name, per);
         }
         FightPredictor.percentiles = percentiles;
@@ -255,30 +302,40 @@ public class FightPredictor implements
     public static void generateDataForMapNodes() {
         FightPredictor.predictedHPOnMapNodes = new HashMap<MapRoomNode, Integer>();
 
-        for (MapRoomNode node : AbstractDungeon.map.get(0)) {
-            predictedHPOnMapNodes.put(node, AbstractDungeon.player.currentHealth);
+        MapRoomNode currentMapNode = AbstractDungeon.getCurrMapNode();
+
+        boolean isFirstMapNodeSelection = currentMapNode.y == -1;
+
+        logger.info("currentMapNode: " + currentMapNode);
+
+        if (isFirstMapNodeSelection) {
+            for (MapRoomNode node : AbstractDungeon.map.get(0)) {
+                predictedHPOnMapNodes.put(node, AbstractDungeon.player.currentHealth);
+            }
+        } else {
+            predictedHPOnMapNodes.put(currentMapNode, AbstractDungeon.player.currentHealth);
         }
 
-        for (int levelIndex = 1; levelIndex < AbstractDungeon.map.size(); levelIndex++) {
+        int firstLevelIndex = isFirstMapNodeSelection ? 1 : currentMapNode.y + 1;
+
+        for (int levelIndex = firstLevelIndex; levelIndex < AbstractDungeon.map.size(); levelIndex++) {
             ArrayList<MapRoomNode> level = AbstractDungeon.map.get(levelIndex);
             for (MapRoomNode node : level) {
-                if (node == AbstractDungeon.currMapNode) {
-                    predictedHPOnMapNodes.put(node, AbstractDungeon.player.currentHealth);
-                } else {
-                    int previousHP = node.getParents().stream()
-                            .map(parent -> FightPredictor.predictedHPOnMapNodes.get(parent))
-                            .max(Float::compare)
-                            .orElse(AbstractDungeon.player.currentHealth)
-                            .intValue();
+                Optional<Integer> previousHPOptional = node.getParents().stream()
+                    .map(parent -> FightPredictor.predictedHPOnMapNodes.get(parent))
+                    .filter(value -> value != null)
+                    .max(Float::compare);
+                if (previousHPOptional.isPresent()) {
+                    int previousHP = previousHPOptional.get();
                     int predictedHP;
                     if (previousHP == 0) {
                         predictedHP = 0;
                     } else {
                         int predictedHPDifference;
                         if (node.room instanceof RestRoom) {
-                            predictedHPDifference = 23;
+                            predictedHPDifference = 21;
                         } else {
-                            predictedHPDifference = (int) -StatEvaluation.determineScoreForNode(node, AbstractDungeon.actNum);
+                            predictedHPDifference = (int)-StatEvaluation.determineScoreForNode(node, AbstractDungeon.actNum);
                         }
                         predictedHP = Math.max(0, Math.min(previousHP + predictedHPDifference, AbstractDungeon.player.maxHealth));
                     }
@@ -286,5 +343,16 @@ public class FightPredictor implements
                 }
             }
         }
+    }
+
+    public static int determineEvaluationStartingAct() {
+        int startingAct;
+        AbstractRoom currentRoom = AbstractDungeon.getCurrRoom();
+        if (currentRoom instanceof MonsterRoomBoss || currentRoom instanceof TreasureRoomBoss) {
+            startingAct = Math.min(AbstractDungeon.actNum + 1, 4);
+        } else {
+            startingAct = AbstractDungeon.actNum;
+        }
+        return startingAct;
     }
 }

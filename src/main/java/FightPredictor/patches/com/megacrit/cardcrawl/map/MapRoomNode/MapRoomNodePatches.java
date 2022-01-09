@@ -18,7 +18,7 @@ public class MapRoomNodePatches {
         @SpirePostfixPatch
         public static void render(MapRoomNode __instance, SpriteBatch spriteBatch) {
             MapRoomNode currentMapNode = AbstractDungeon.getCurrMapNode();
-            if (!__instance.taken && (currentMapNode == null || __instance.y > currentMapNode.y)) {
+            if (!__instance.taken && __instance.y > currentMapNode.y) {
                 Integer predictedHP = FightPredictor.predictedHPOnMapNodes.get(__instance);
                 if (predictedHP != null) {
                     // String text = Float.toString(StatEvaluation.determineScoreForNode(__instance, AbstractDungeon.actNum));

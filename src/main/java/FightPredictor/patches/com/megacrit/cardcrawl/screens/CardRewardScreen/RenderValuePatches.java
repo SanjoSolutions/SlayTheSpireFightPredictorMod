@@ -17,10 +17,7 @@ import javassist.CannotCompileException;
 import javassist.CtBehavior;
 import FightPredictor.CardEvaluationData;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.Map;
 
 import static FightPredictor.util.HelperMethods.formatNum;
@@ -32,7 +29,11 @@ public class RenderValuePatches {
     public static class OpenPatch {
         @SpirePrefixPatch
         public static void open(CardRewardScreen __instance, ArrayList<AbstractCard> cards, RewardItem rItem, String header) {
-            FightPredictor.cardChoicesEvaluations = CardEvaluationData.createByAdding(cards, AbstractDungeon.actNum, 4);
+            FightPredictor.cardChoicesEvaluations = CardEvaluationData.createByAdding(
+                cards,
+                FightPredictor.determineEvaluationStartingAct(),
+                4
+            );
         }
     }
 
@@ -61,7 +62,12 @@ public class RenderValuePatches {
 
                     StringBuilder text = new StringBuilder();
 
-                    for (int actNumber = AbstractDungeon.actNum; actNumber <= 4; actNumber++) {
+
+                    for (
+                        int actNumber = FightPredictor.determineEvaluationStartingAct();
+                        actNumber <= 4;
+                        actNumber++
+                    ) {
                         float score;
                         if (actNumber == AbstractDungeon.actNum && (AbstractDungeon.floorNum == 16 || AbstractDungeon.floorNum == 33)) {
                             score = 9999f;
