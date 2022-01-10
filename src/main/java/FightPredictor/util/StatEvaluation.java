@@ -11,6 +11,7 @@ import com.megacrit.cardcrawl.rooms.MonsterRoomBoss;
 import com.megacrit.cardcrawl.rooms.MonsterRoomElite;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class StatEvaluation {
 
@@ -83,22 +84,15 @@ public class StatEvaluation {
     }
 
     private static float determineWeightedScoreForCurrentAct(StatEvaluation statEvaluation) {
-        float score = 0;
-
-        float nodeScore = enemiesToAverage(
+        return enemiesToAverage(
             BaseGameConstants.bossIDs,
-            FightPredictor.determineEvaluationStartingAct(),
+            3,
             statEvaluation.predictions
         );
-        score += nodeScore;
-
-        return score;
     }
 
     private static float determineWeightedScoreForAFollowingAct(StatEvaluation statEvaluation, int actNumber) {
-        float score = enemiesToAverage(BaseGameConstants.bossIDs, actNumber, statEvaluation.predictions);
-
-        return score;
+        return enemiesToAverage(BaseGameConstants.bossIDs, 3, statEvaluation.predictions);
     }
 
     public static float determineScoreForNode(MapRoomNode node, int actNumber) {
@@ -109,7 +103,19 @@ public class StatEvaluation {
             } else if (node.room instanceof MonsterRoomBoss) {
                 score = determineScoreForBossNode(actNumber);
             } else {
-                score = determineScoreForEnemyNode(actNumber);
+                if (node == AbstractDungeon.getCurrMapNode()) {
+                    if (BaseGameConstants.weakIDs.get(actNumber).contains(AbstractDungeon.monsterList.get(0))) {
+                        score = determineScoreForWeakEnemyNode(actNumber);
+                    } else {
+                        score = determineScoreForStrongEnemyNode(actNumber);
+                    }
+                } else {
+                    if (isForSureWeakEnemyNode(node)) {
+                        score = determineScoreForWeakEnemyNode(actNumber);
+                    } else {
+                        score = determineScoreForStrongEnemyNode(actNumber);
+                    }
+                }
             }
         } else {
             score = 0f;
@@ -117,8 +123,24 @@ public class StatEvaluation {
         return score;
     }
 
-    public static float determineScoreForEnemyNode(int actNumber) {
-        return determineScoreForEnemyIds(actNumber, BaseGameConstants.hallwayIDs);
+    private static boolean isForSureWeakEnemyNode(MapRoomNode node) {
+        List<MapRoomNode> parents = node.getParents();
+        int parentMonsterRoomCount = 0;
+        while (parentMonsterRoomCount < 3 && parents.size() >= 1) {
+            if (parents.stream().anyMatch(parent -> parent.room instanceof MonsterRoom && !(parent.room instanceof MonsterRoomElite) && !(parent.room instanceof MonsterRoomBoss))) {
+                parentMonsterRoomCount += 1;
+            }
+            parents = parents.stream().flatMap(parent -> parent.getParents().stream()).collect(Collectors.toList());
+        }
+        return parentMonsterRoomCount < 3;
+    }
+
+    public static float determineScoreForWeakEnemyNode(int actNumber) {
+        return determineScoreForEnemyIds(actNumber, BaseGameConstants.weakIDs);
+    }
+
+    public static float determineScoreForStrongEnemyNode(int actNumber) {
+        return determineScoreForEnemyIds(actNumber, BaseGameConstants.strongIDs);
     }
 
     public static float determineScoreForEliteNode(int actNumber) {

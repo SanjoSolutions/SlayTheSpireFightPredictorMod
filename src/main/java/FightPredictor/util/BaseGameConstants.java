@@ -7,22 +7,37 @@ import static java.util.stream.Collectors.toSet;
 
 public class BaseGameConstants {
 
-    public static final Map<Integer, Set<String>> hallwayIDs;
+    public static final Map<Integer, Set<String>> weakIDs;
+    public static final Map<Integer, Set<String>> strongIDs;
     public static final Map<Integer, Set<String>> eliteIDs;
     public static final Map<Integer, Set<String>> bossIDs;
     public static final Map<Integer, Set<String>> allFightsByAct;
     public static final Map<Integer, Set<String>> elitesAndBossesByAct;
 
     static {
-        hallwayIDs = new HashMap<>();
-        hallwayIDs.put(1, new HashSet<>(Arrays.asList(
-            // weak
+        weakIDs = new HashMap<>();
+        weakIDs.put(1, new HashSet<>(Arrays.asList(
             "Blue Slaver",
             "Cultist",
             "Jaw Worm",
             "2 Louse",
-            "Small Slimes",
-            // strong
+            "Small Slimes"
+        )));
+        weakIDs.put(2, new HashSet<>(Arrays.asList(
+            "Chosen",
+            "Shell Parasite",
+            "Spheric Guardian",
+            "3 Byrds",
+            "2 Thieves"
+        )));
+        weakIDs.put(3, new HashSet<>(Arrays.asList(
+            "Orb Walker",
+            "3 Darklings",
+            "3 Shapes"
+        )));
+        weakIDs.put(4, new HashSet<>(Arrays.asList()));
+        strongIDs = new HashMap<>();
+        strongIDs.put(1, new HashSet<>(Arrays.asList(
             "Gremlin Gang",
             "Large Slime",
             "Looter",
@@ -33,14 +48,7 @@ public class BaseGameConstants {
             "3 Louse",
             "2 Fungi Beasts"
         )));
-        hallwayIDs.put(2, new HashSet<>(Arrays.asList(
-            // weak
-            "Chosen",
-            "Shell Parasite",
-            "Spheric Guardian",
-            "3 Byrds",
-            "2 Thieves",
-            // strong
+        strongIDs.put(2, new HashSet<>(Arrays.asList(
             "Chosen and Byrds",
             "Sentry and Sphere",
             "Snake Plant",
@@ -50,12 +58,7 @@ public class BaseGameConstants {
             "3 Cultists",
             "Shelled Parasite and Fungi"
         )));
-        hallwayIDs.put(3, new HashSet<>(Arrays.asList(
-            // weak
-            "Orb Walker",
-            "3 Darklings",
-            "3 Shapes",
-            // strong
+        strongIDs.put(3, new HashSet<>(Arrays.asList(
             "Transient",
             "4 Shapes",
             "Maw",
@@ -64,7 +67,7 @@ public class BaseGameConstants {
             "Spire Growth",
             "Writhing Mass"
         )));
-        hallwayIDs.put(4, new HashSet<>(Arrays.asList()));
+        strongIDs.put(4, new HashSet<>(Arrays.asList()));
 
         eliteIDs = new HashMap<>();
         eliteIDs.put(1, new HashSet<>(Arrays.asList(
@@ -108,7 +111,7 @@ public class BaseGameConstants {
 
         allFightsByAct = new HashMap<>();
         for (int i = 1; i <= 3; i++) {
-            Set<String> enemies = Stream.of(hallwayIDs.get(i), eliteIDs.get(i), bossIDs.get(i))
+            Set<String> enemies = Stream.of(weakIDs.get(i), strongIDs.get(i), eliteIDs.get(i), bossIDs.get(i))
                     .flatMap(Set::stream)
                     .collect(toSet());
             allFightsByAct.put(i, enemies);
