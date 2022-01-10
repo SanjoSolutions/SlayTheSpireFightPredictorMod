@@ -4,8 +4,6 @@ import FightPredictor.FightPredictor;
 import FightPredictor.ml.ModelUtils;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
-import com.megacrit.cardcrawl.helpers.ModHelper;
-import com.megacrit.cardcrawl.map.MapEdge;
 import com.megacrit.cardcrawl.map.MapRoomNode;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
 import com.megacrit.cardcrawl.rooms.MonsterRoom;
@@ -13,7 +11,6 @@ import com.megacrit.cardcrawl.rooms.MonsterRoomBoss;
 import com.megacrit.cardcrawl.rooms.MonsterRoomElite;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class StatEvaluation {
 
@@ -30,12 +27,12 @@ public class StatEvaluation {
     /**
      * Create a StatEvaluation. Runs a prediction on every fight supplied in enemiesToPredictWith.
      *
-     * @param cards in deck
-     * @param relics obtained
-     * @param maxHP of player
-     * @param enteringHP of player
-     * @param ascension of player
-     * @param potionUsed in fight
+     * @param cards                in deck
+     * @param relics               obtained
+     * @param maxHP                of player
+     * @param enteringHP           of player
+     * @param ascension            of player
+     * @param potionUsed           in fight
      * @param enemiesToPredictWith Runs 1 prediction for every enemy group supplied.
      */
     public StatEvaluation(List<AbstractCard> cards, List<AbstractRelic> relics, int maxHP, int enteringHP, int ascension, boolean potionUsed, Set<String> enemiesToPredictWith) {
@@ -53,6 +50,7 @@ public class StatEvaluation {
 
     /**
      * Additional enemies to run predictions with
+     *
      * @param enemiesToAdd enemies to run predictions with
      */
     public void addPredictions(Set<String> enemiesToAdd) {
@@ -69,8 +67,8 @@ public class StatEvaluation {
      * For comparable results, both StatEvaluations should have used the same max, entering hp
      * Throws an exception if either StatEvaluation does not have the needed fight data evaluated prior to calling.
      *
-     * @param o1 Positive values indicate that this load out is predicted to be better
-     * @param o2 Negative values indicate that this load out is predicted to be better
+     * @param o1        Positive values indicate that this load out is predicted to be better
+     * @param o2        Negative values indicate that this load out is predicted to be better
      * @param actNumber Act to get average for
      * @return Weighted average of average damage taken per fight
      */
@@ -81,105 +79,24 @@ public class StatEvaluation {
     }
 
     private static float determineWeightedScore(StatEvaluation statEvaluation, int actNumber) {
-        float score;
-
-        if (actNumber == AbstractDungeon.actNum) {
-            score = determineWeightedScoreForCurrentAct(statEvaluation);
-            for (int actNumber2 = actNumber + 1; actNumber2 <= 3; actNumber2++) {
-                score += determineWeightedScoreForAFollowingAct(statEvaluation, actNumber2);
-            }
-        } else {
-            score = determineWeightedScoreForAFollowingAct(statEvaluation, actNumber);
-        }
-
-        return score;
+        return determineWeightedScoreForAFollowingAct(statEvaluation, 3);
     }
 
     private static float determineWeightedScoreForCurrentAct(StatEvaluation statEvaluation) {
         float score = 0;
 
-        List<MapRoomNode> nodes = new ArrayList<MapRoomNode>();
-        nodes.add(AbstractDungeon.getCurrMapNode());
-        nodes = getChildren(nodes);
-        int distanceFromCurrentMapNode = 0;
-
-        while (nodes.size() >= 1) {
-            float weight = 1f / (float) nodes.size();
-
-            for (MapRoomNode node : nodes) {
-                if (node.room instanceof MonsterRoom) {
-                    Map<Integer, Set<String>> ids;
-                    if (node.room instanceof MonsterRoomElite) {
-                        ids = BaseGameConstants.eliteIDs;
-                    } else if (!(node.room instanceof MonsterRoomBoss)) {
-                        ids = BaseGameConstants.hallwayIDs;
-                    } else {
-                        ids = null;
-                    }
-                    if (ids != null) {
-                        float nodeScore = enemiesToAverage(ids, AbstractDungeon.actNum, statEvaluation.predictions);
-                        score += weight * nodeScore;
-                    }
-                }
-            }
-
-            nodes = getChildren(nodes);
-            distanceFromCurrentMapNode++;
-        }
-
-        float nodeScore = enemiesToAverage(BaseGameConstants.bossIDs, AbstractDungeon.actNum, statEvaluation.predictions);
+        float nodeScore = enemiesToAverage(
+            BaseGameConstants.bossIDs,
+            FightPredictor.determineEvaluationStartingAct(),
+            statEvaluation.predictions
+        );
         score += nodeScore;
 
         return score;
     }
 
     private static float determineWeightedScoreForAFollowingAct(StatEvaluation statEvaluation, int actNumber) {
-        // weighting based on approximated ratio between normal, elite and boss map nodes
-        float normalEnemyWeight;
-        float eliteEnemyWeight;
-        float bossEnemyWeight;
-
-        if (actNumber == 4) {
-            normalEnemyWeight = 0;
-            eliteEnemyWeight = 0.5f;
-            bossEnemyWeight = 0.5f;
-        } else {
-            int mapHeight = 15;
-            int mapWidth = 7;
-            int availableRoomCount = mapHeight * mapWidth + 1;
-
-            // From dungeon classes
-            float shopRoomChance = 0.05F;
-            float restRoomChance = 0.12F;
-            float treasureRoomChance = 0.0F;
-            float eventRoomChance = 0.22F;
-            float eliteRoomChance = 0.08F;
-            int eliteCount;
-            if (actNumber == 4) {
-                eliteCount = 1;
-            } else {
-                if (ModHelper.isModEnabled("Elite Swarm")) {
-                    eliteRoomChance *= 2.5F;
-                } else if (AbstractDungeon.ascensionLevel >= 1) {
-                    eliteRoomChance *= 1.6F;
-                }
-                eliteCount = Math.round(availableRoomCount * eliteRoomChance);
-            }
-            float normalEnemyProportion = 1.0f - shopRoomChance - restRoomChance - treasureRoomChance - eventRoomChance - eliteRoomChance;
-            float bossRoomProportion = 1f / availableRoomCount;
-
-
-            float sum = normalEnemyProportion + eliteRoomChance + bossRoomProportion;
-            normalEnemyWeight = normalEnemyProportion / sum;
-            eliteEnemyWeight = eliteRoomChance / sum;
-            bossEnemyWeight = 1f / sum;
-        }
-
-        float score = (
-            normalEnemyWeight * enemiesToAverage(BaseGameConstants.hallwayIDs, actNumber, statEvaluation.predictions) +
-            eliteEnemyWeight * enemiesToAverage(BaseGameConstants.eliteIDs, actNumber, statEvaluation.predictions) +
-            bossEnemyWeight * enemiesToAverage(BaseGameConstants.bossIDs, actNumber, statEvaluation.predictions)
-        );
+        float score = enemiesToAverage(BaseGameConstants.bossIDs, actNumber, statEvaluation.predictions);
 
         return score;
     }
@@ -215,13 +132,13 @@ public class StatEvaluation {
     private static float determineScoreForEnemyIds(int actNumber, Map<Integer, Set<String>> enemyIds) {
         List<AbstractCard> deck = new ArrayList<>(AbstractDungeon.player.masterDeck.group);
         StatEvaluation statEvaluation = new StatEvaluation(
-                deck,
-                AbstractDungeon.player.relics,
-                AbstractDungeon.player.maxHealth,
-                AbstractDungeon.player.currentHealth,
-                AbstractDungeon.ascensionLevel,
-                false,
-                enemyIds.get(AbstractDungeon.actNum)
+            deck,
+            AbstractDungeon.player.relics,
+            AbstractDungeon.player.maxHealth,
+            AbstractDungeon.player.currentHealth,
+            AbstractDungeon.ascensionLevel,
+            false,
+            enemyIds.get(AbstractDungeon.actNum)
         );
         float nodeScore = enemiesToAverage(enemyIds, AbstractDungeon.actNum, statEvaluation.predictions);
         return nodeScore;
@@ -273,10 +190,10 @@ public class StatEvaluation {
 
     private static float enemiesToAverage(Map<Integer, Set<String>> enemiesByAct, int act, Map<String, Float> predictions) {
         double total = enemiesByAct.get(act).stream()
-                .mapToDouble(predictions::get)
-                .average()
-                .orElse(0);
-        return (float) total;
+            .mapToDouble(predictions::get)
+            .average()
+            .orElse(0);
+        return (float)total;
     }
 
     public Map<String, Float> getPredictions() {
