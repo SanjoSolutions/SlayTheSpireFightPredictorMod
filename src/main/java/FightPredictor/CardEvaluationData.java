@@ -4,9 +4,12 @@ import FightPredictor.util.BaseGameConstants;
 import FightPredictor.util.StatEvaluation;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.helpers.CardLibrary;
+import com.megacrit.cardcrawl.helpers.RelicLibrary;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CardEvaluationData {
 
@@ -84,10 +87,10 @@ public class CardEvaluationData {
         CardEvaluationData ced = new CardEvaluationData(startingAct, endingAct);
         Set<String> enemies = getAllEnemies(startingAct, endingAct);
 
-        for (AbstractCard c : cardsToChange) {
+        for (AbstractCard card : cardsToChange) {
             // Modify the deck
             List<AbstractCard> newDeck = new ArrayList<>(AbstractDungeon.player.masterDeck.group);
-            dm.modifyDeck(newDeck, c);
+            dm.modifyDeck(newDeck, card);
 
             // Run stat evaluation
             StatEvaluation se = new StatEvaluation(
@@ -99,7 +102,7 @@ public class CardEvaluationData {
                     false,
                     enemies
             );
-            ced.evals.put(c, se);
+            ced.evals.put(card, se);
 
             // Calculate score for each act by comparing to skip
             Map<Integer, Float> diffsByAct = new HashMap<>();
@@ -107,7 +110,7 @@ public class CardEvaluationData {
                 float diff = StatEvaluation.determineWeightedScoreDifference(se, ced.skip, act);
                 diffsByAct.put(act, diff);
             }
-            ced.diffs.put(c, diffsByAct);
+            ced.diffs.put(card, diffsByAct);
         }
         return ced;
     }
@@ -148,11 +151,50 @@ public class CardEvaluationData {
         return ced;
     }
 
+    public static CardEvaluationData createByRemovingStartingRelicAndAddingARandomBossRelic(
+        int startingAct,
+        int endingAct
+    ) {
+        CardEvaluationData ced = new CardEvaluationData(startingAct, endingAct);
+        Set<String> enemies = getAllEnemies(startingAct, endingAct);
+
+        List<AbstractCard> newDeck = new ArrayList<>(AbstractDungeon.player.masterDeck.group);
+
+        List<AbstractRelic> relics2 = AbstractDungeon.player.relics.stream()
+            .filter(relic -> RelicLibrary.starterList.contains(relic))
+            .collect(Collectors.toList());
+
+        for (AbstractRelic relic : RelicLibrary.bossList) {
+            ArrayList<AbstractRelic> relics = new ArrayList<AbstractRelic>(relics2);
+            relics.add(relic);
+            StatEvaluation se = new StatEvaluation(
+                newDeck,
+                relics,
+                AbstractDungeon.player.maxHealth,
+                AbstractDungeon.player.currentHealth,
+                AbstractDungeon.ascensionLevel,
+                false,
+                enemies
+            );
+            ced.evals.put(relic, se);
+
+            // Calculate score for each act by comparing to skip
+            Map<Integer, Float> diffsByAct = new HashMap<>();
+            for (int act = startingAct; act <= endingAct; act++) {
+                float diff = StatEvaluation.determineWeightedScoreDifference(se, ced.skip, act);
+                diffsByAct.put(act, diff);
+            }
+            ced.diffs.put(relic, diffsByAct);
+        }
+
+        return ced;
+    }
+
     public void addAdditionalActs(Set<Integer> actsToAdd) {
 
     }
 
-    private static Set<String> getAllEnemies(int startingAct, int endingAct) {
+    public static Set<String> getAllEnemies(int startingAct, int endingAct) {
         Set<String> enemies = new HashSet<>();
         for (int act = startingAct; act <= endingAct; act++) {
             enemies.addAll(BaseGameConstants.allFightsByAct.get(act));

@@ -79,11 +79,11 @@ public class StatEvaluation {
         return score2 - score1;
     }
 
-    private static float determineWeightedScore(StatEvaluation statEvaluation, int actNumber) {
+    public static float determineWeightedScore(StatEvaluation statEvaluation, int actNumber) {
         return determineWeightedScoreForAFollowingAct(statEvaluation, 3);
     }
 
-    private static float determineWeightedScoreForCurrentAct(StatEvaluation statEvaluation) {
+    public static float determineWeightedScoreForCurrentAct(StatEvaluation statEvaluation) {
         return enemiesToAverage(
             BaseGameConstants.bossIDs,
             3,
