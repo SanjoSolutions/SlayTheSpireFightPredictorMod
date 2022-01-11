@@ -390,7 +390,9 @@ public class ModelUtils {
             "Flying Knee",
             "Predator",
             "Pray",
-            "Madness"
+            "Madness",
+            "Strike",
+            "Defend"
         ));
         List<String> allRelics = new ArrayList<>(Arrays.asList(
             "Burning Blood",
