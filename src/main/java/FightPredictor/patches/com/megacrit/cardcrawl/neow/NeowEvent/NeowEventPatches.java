@@ -62,7 +62,7 @@ public class NeowEventPatches {
                     } else if (reward.type == NeowReward.NeowRewardType.REMOVE_TWO) {
                         evaluation = evaluateRemovingTwoCards();
                     } else if (reward.type == NeowReward.NeowRewardType.TRANSFORM_TWO_CARDS) {
-                        evaluation = evaluateTransformingTwoCards();
+                        // evaluation = evaluateTransformingTwoCards();
                     } else if (reward.type == NeowReward.NeowRewardType.ONE_RARE_RELIC) {
                         evaluation = evaluateAddingOneRareRelic(receivesCurse);
                     } else if (reward.type == NeowReward.NeowRewardType.THREE_RARE_CARDS) {
