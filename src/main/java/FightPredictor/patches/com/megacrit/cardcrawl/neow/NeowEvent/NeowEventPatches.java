@@ -33,9 +33,10 @@ public class NeowEventPatches {
                 ArrayList<NeowReward> rewards = (ArrayList<NeowReward>)rewardsField.get(__instance);
                 for (int index = 0; index < rewards.size(); index++) {
                     NeowReward reward = rewards.get(index);
+                    boolean receivesCurse = reward.drawback == NeowReward.NeowRewardDrawback.CURSE;
                     Float evaluation = null;
                     if (reward.type == NeowReward.NeowRewardType.RANDOM_COLORLESS_2) {
-                        evaluation = evaluateAddingARareColorlessCard();
+                        evaluation = evaluateAddingARareColorlessCard(receivesCurse);
                     } else if (reward.type == NeowReward.NeowRewardType.THREE_CARDS) {
                         evaluation = evaluateAddingACard();
                     } else if (reward.type == NeowReward.NeowRewardType.ONE_RANDOM_RARE_CARD) {
@@ -63,11 +64,11 @@ public class NeowEventPatches {
                     } else if (reward.type == NeowReward.NeowRewardType.TRANSFORM_TWO_CARDS) {
                         evaluation = evaluateTransformingTwoCards();
                     } else if (reward.type == NeowReward.NeowRewardType.ONE_RARE_RELIC) {
-                        evaluation = evaluateAddingOneRareRelic();
+                        evaluation = evaluateAddingOneRareRelic(receivesCurse);
                     } else if (reward.type == NeowReward.NeowRewardType.THREE_RARE_CARDS) {
-                        evaluation = evaluateAddingThreeRareCards();
+                        evaluation = evaluateAddingThreeRareCards(receivesCurse);
                     } else if (reward.type == NeowReward.NeowRewardType.TWO_FIFTY_GOLD) {
-
+                        // TODO: Implement receivesCurse
                     } else if (reward.type == NeowReward.NeowRewardType.TWENTY_PERCENT_HP_BONUS) {
 
                     } else if (reward.type == NeowReward.NeowRewardType.BOSS_RELIC) {
@@ -94,7 +95,8 @@ public class NeowEventPatches {
             __instance.roomEventText.optionList.get(index).msg += text;
         }
 
-        private static float evaluateAddingARareColorlessCard() {
+        // TODO: Implement receivesCurse
+        private static float evaluateAddingARareColorlessCard(boolean receivesCurse) {
             CardEvaluationData evaluations = CardEvaluationData.createByAdding(
                 CardLibrary.getCardList(CardLibrary.LibraryType.COLORLESS).stream().filter(card -> card.rarity == AbstractCard.CardRarity.RARE).collect(Collectors.toList()),
                 STARTING_ACT,
@@ -404,7 +406,8 @@ public class NeowEventPatches {
             return maxEvaluation;
         }
 
-        private static float evaluateAddingOneRareRelic() {
+        // TODO: Implement receivesCurse
+        private static float evaluateAddingOneRareRelic(boolean receivesCurse) {
             CardEvaluationData evaluations = CardEvaluationData.createByAddingRelic(
                 RelicLibrary.rareList,
                 STARTING_ACT,
@@ -422,7 +425,7 @@ public class NeowEventPatches {
             return skipEvaluation - evaluation;
         }
 
-        private static float evaluateAddingThreeRareCards() {
+        private static float evaluateAddingThreeRareCards(boolean receivesCurse) {
             int startingAct = STARTING_ACT;
             int endingAct = ENDING_ACT;
 
@@ -452,21 +455,42 @@ public class NeowEventPatches {
                     newDeck2.add(card2);
 
                     for (AbstractCard card3 : rareCards) {
-                        List<AbstractCard> newDeck3 = new ArrayList<>(newDeck);
+                        List<AbstractCard> newDeck3 = new ArrayList<>(newDeck2);
                         newDeck3.add(card3);
 
-                        StatEvaluation statEvaluation = new StatEvaluation(
-                            newDeck3,
-                            AbstractDungeon.player.relics,
-                            AbstractDungeon.player.maxHealth,
-                            AbstractDungeon.player.currentHealth,
-                            AbstractDungeon.ascensionLevel,
-                            false,
-                            enemies
-                        );
+                        if (receivesCurse) {
+                            List<AbstractCard> curses = getCurses();
+                            for (AbstractCard curse : curses) {
+                                List<AbstractCard> newDeck4 = new ArrayList<>(newDeck3);
+                                newDeck4.add(curse);
 
-                        evaluation += StatEvaluation.determineWeightedScore(statEvaluation, AbstractDungeon.actNum);
-                        count++;
+                                StatEvaluation statEvaluation = new StatEvaluation(
+                                    newDeck4,
+                                    AbstractDungeon.player.relics,
+                                    AbstractDungeon.player.maxHealth,
+                                    AbstractDungeon.player.currentHealth,
+                                    AbstractDungeon.ascensionLevel,
+                                    false,
+                                    enemies
+                                );
+
+                                evaluation += StatEvaluation.determineWeightedScore(statEvaluation, AbstractDungeon.actNum);
+                                count++;
+                            }
+                        } else {
+                            StatEvaluation statEvaluation = new StatEvaluation(
+                                newDeck3,
+                                AbstractDungeon.player.relics,
+                                AbstractDungeon.player.maxHealth,
+                                AbstractDungeon.player.currentHealth,
+                                AbstractDungeon.ascensionLevel,
+                                false,
+                                enemies
+                            );
+
+                            evaluation += StatEvaluation.determineWeightedScore(statEvaluation, AbstractDungeon.actNum);
+                            count++;
+                        }
                     }
                 }
             }
@@ -489,6 +513,13 @@ public class NeowEventPatches {
             float skipEvaluation = StatEvaluation.determineWeightedScoreForCurrentAct(evaluations.getSkip());
 
             return skipEvaluation - evaluation;
+        }
+
+        private static List<AbstractCard> getCurses() {
+            return CardLibrary.getCardList(CardLibrary.LibraryType.CURSE)
+                .stream()
+                .filter(card -> !card.cardID.equals("AscendersBane") && !card.cardID.equals("Necronomicurse") && !card.cardID.equals("CurseOfTheBell") && !card.cardID.equals("Pride"))
+                .collect(Collectors.toList());
         }
     }
 }
