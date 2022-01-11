@@ -44,6 +44,9 @@ public class BossRelicSelectScreenPatches {
 
         private static void renderScore(SpriteBatch spriteBatch, AbstractRelic relic, float offsetX) {
             String text = HelperMethods.getPredictionStringForRelic(relic, FightPredictor.relicChoiceEvaluations);
+            // TODO: For relic "Empty Cage" evaluate as removing 2 cards (the 2 cards with the most benefit)
+            // TODO: For relic "Black Star": Make its prediction >= 0 because it seems to have a stricly benefitial effect.
+            // TODO: For relic "Slaver's Collar": Make its prediction >= 0 because it seems to have a stricly benefitial effect.
             spriteBatch.setColor(Color.WHITE);
             FontHelper.renderSmartText(
                     spriteBatch,

@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+// FIXME: After buying and using the relic "Orrery" in the shop, the card evaluations no longer show, when visiting the shop again. The relic evaluations still show.
+
 public class ShopScreenPatches {
 
     @SpirePatch(clz = ShopScreen.class, method = "init")

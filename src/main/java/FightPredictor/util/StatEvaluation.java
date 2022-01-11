@@ -55,10 +55,18 @@ public class StatEvaluation {
      * @param enemiesToAdd enemies to run predictions with
      */
     public void addPredictions(Set<String> enemiesToAdd) {
-        float[] vector = ModelUtils.getInputVectorNoEncounter(cards, relics, maxHP, enteringHP, ascension, potionUsed);
-        for (String enemy : enemiesToAdd) {
-            vector = ModelUtils.changeEncounter(vector, enemy);
-            float prediction = FightPredictor.model.predict(vector) * 100f;
+        float[][] vectors = new float[enemiesToAdd.size()][];
+        ArrayList<String> enemies = new ArrayList(enemiesToAdd);
+        for (int index = 0; index < enemiesToAdd.size(); index++) {
+            String enemy = enemies.get(index);
+            float[] vector = ModelUtils.getInputVector(cards, relics, enemy, maxHP, enteringHP, ascension, potionUsed);
+            vectors[index] = vector;
+        }
+
+        float[] predictions2 = FightPredictor.model.predict(vectors);
+        for (int index = 0; index < enemiesToAdd.size(); index++) {
+            String enemy = enemies.get(index);
+            float prediction = predictions2[index] * 100f;
             predictions.put(enemy, prediction);
         }
     }

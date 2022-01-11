@@ -2,10 +2,12 @@ package FightPredictor.patches.com.megacrit.cardcrawl.neow.NeowEvent;
 
 import FightPredictor.FightPredictor;
 import FightPredictor.CardEvaluationData;
+import FightPredictor.util.BaseGameConstants;
 import FightPredictor.util.StatEvaluation;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePostfixPatch;
 import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.CardLibrary;
 import com.megacrit.cardcrawl.helpers.RelicLibrary;
@@ -17,6 +19,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class NeowEventPatches {
+    private static int STARTING_ACT = 3;
+    private static int ENDING_ACT = 3;
+    private static Set<String> enemies = BaseGameConstants.bossIDs.get(3);
+
     @SpirePatch(clz = NeowEvent.class, method = "blessing")
     public static class BlessingPatch {
         @SpirePostfixPatch
@@ -27,25 +33,25 @@ public class NeowEventPatches {
                 ArrayList<NeowReward> rewards = (ArrayList<NeowReward>)rewardsField.get(__instance);
                 for (int index = 0; index < rewards.size(); index++) {
                     NeowReward reward = rewards.get(index);
-                    FightPredictor.logger.info("reward " + index + ": " + reward.type);
+                    Float evaluation = null;
                     if (reward.type == NeowReward.NeowRewardType.RANDOM_COLORLESS_2) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateAddingARareColorlessCard()) + ")";
+                        evaluation = evaluateAddingARareColorlessCard();
                     } else if (reward.type == NeowReward.NeowRewardType.THREE_CARDS) {
-
+                        evaluation = evaluateAddingACard();
                     } else if (reward.type == NeowReward.NeowRewardType.ONE_RANDOM_RARE_CARD) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateAddingARandomRareCard()) + ")";
+                        evaluation = evaluateAddingARandomRareCard();
                     } else if (reward.type == NeowReward.NeowRewardType.REMOVE_CARD) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateRemovingACard()) + ")";
+                        evaluation = evaluateRemovingACard();
                     } else if (reward.type == NeowReward.NeowRewardType.UPGRADE_CARD) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateUpgradingACard()) + ")";
+                        evaluation = evaluateUpgradingACard();
                     } else if (reward.type == NeowReward.NeowRewardType.RANDOM_COLORLESS) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateAddingAColorlessCard()) + ")";
+                        evaluation = evaluateAddingAColorlessCard();
                     } else if (reward.type == NeowReward.NeowRewardType.TRANSFORM_CARD) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateTransformingACard()) + ")";
+                        evaluation = evaluateTransformingACard();
                     } else if (reward.type == NeowReward.NeowRewardType.THREE_SMALL_POTIONS) {
 
                     } else if (reward.type == NeowReward.NeowRewardType.RANDOM_COMMON_RELIC) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateAddingACommonRelic()) + ")";
+                        evaluation = evaluateAddingACommonRelic();
                     } else if (reward.type == NeowReward.NeowRewardType.TEN_PERCENT_HP_BONUS) {
 
                     } else if (reward.type == NeowReward.NeowRewardType.HUNDRED_GOLD) {
@@ -53,19 +59,22 @@ public class NeowEventPatches {
                     } else if (reward.type == NeowReward.NeowRewardType.THREE_ENEMY_KILL) {
 
                     } else if (reward.type == NeowReward.NeowRewardType.REMOVE_TWO) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateRemovingTwoCards()) + ")";
+                        evaluation = evaluateRemovingTwoCards();
                     } else if (reward.type == NeowReward.NeowRewardType.TRANSFORM_TWO_CARDS) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateTransformingTwoCards()) + ")";
+                        evaluation = evaluateTransformingTwoCards();
                     } else if (reward.type == NeowReward.NeowRewardType.ONE_RARE_RELIC) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateAddingOneRareRelic()) + ")";
+                        evaluation = evaluateAddingOneRareRelic();
                     } else if (reward.type == NeowReward.NeowRewardType.THREE_RARE_CARDS) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateAddingThreeRareCards()) + ")";
+                        evaluation = evaluateAddingThreeRareCards();
                     } else if (reward.type == NeowReward.NeowRewardType.TWO_FIFTY_GOLD) {
 
                     } else if (reward.type == NeowReward.NeowRewardType.TWENTY_PERCENT_HP_BONUS) {
 
                     } else if (reward.type == NeowReward.NeowRewardType.BOSS_RELIC) {
-                        __instance.roomEventText.optionList.get(index).msg += " (" + String.format(Locale.ENGLISH, "%.2f", evaluateRemovingStartingRelicAndAddingARandomBossRelic()) + ")";
+                        evaluation = evaluateRemovingStartingRelicAndAddingARandomBossRelic();
+                    }
+                    if (evaluation != null) {
+                        appendEvaluationToRoomEventOption(__instance, index, evaluation);
                     }
                 }
             } catch (NoSuchFieldException | IllegalAccessException exception) {
@@ -73,11 +82,23 @@ public class NeowEventPatches {
             }
         }
 
+        private static void appendEvaluationToRoomEventOption(NeowEvent __instance, int index, float evaluation) {
+            appendTextToRoomEventOption(
+                __instance,
+                index,
+                " (" + String.format(Locale.ENGLISH, "%.2f", evaluation) + ")"
+            );
+        }
+
+        private static void appendTextToRoomEventOption(NeowEvent __instance, int index, String text) {
+            __instance.roomEventText.optionList.get(index).msg += text;
+        }
+
         private static float evaluateAddingARareColorlessCard() {
             CardEvaluationData evaluations = CardEvaluationData.createByAdding(
                 CardLibrary.getCardList(CardLibrary.LibraryType.COLORLESS).stream().filter(card -> card.rarity == AbstractCard.CardRarity.RARE).collect(Collectors.toList()),
-                AbstractDungeon.actNum,
-                4
+                STARTING_ACT,
+                ENDING_ACT
             );
 
             float evaluation = 0;
@@ -91,11 +112,48 @@ public class NeowEventPatches {
             return skipEvaluation - evaluation;
         }
 
+        private static float evaluateAddingACard() {
+            CardEvaluationData evaluations = CardEvaluationData.createByAdding(
+                CardLibrary.getCardList(convertCardColorToLibraryType(getColorForChosenClass())),
+                STARTING_ACT,
+                ENDING_ACT
+            );
+
+            float evaluation = 0;
+            for (StatEvaluation statEvaluation : evaluations.getEvals().values()) {
+                evaluation += StatEvaluation.determineWeightedScoreForCurrentAct(statEvaluation);
+            }
+            evaluation /= evaluations.getEvals().size();
+
+            float skipEvaluation = StatEvaluation.determineWeightedScoreForCurrentAct(evaluations.getSkip());
+
+            return skipEvaluation - evaluation;
+        }
+
+        private static AbstractCard.CardColor getColorForChosenClass() {
+            return getColorForClass(AbstractDungeon.player.chosenClass);
+        }
+
+        private static AbstractCard.CardColor getColorForClass(AbstractPlayer.PlayerClass playerClass) {
+            switch (playerClass) {
+                case IRONCLAD:
+                    return AbstractCard.CardColor.RED;
+                case THE_SILENT:
+                    return AbstractCard.CardColor.GREEN;
+                case DEFECT:
+                    return AbstractCard.CardColor.BLUE;
+                case WATCHER:
+                    return AbstractCard.CardColor.PURPLE;
+                default:
+                    throw new RuntimeException("Unhandled playerClass");
+            }
+        }
+
         private static float evaluateAddingARandomRareCard() {
             CardEvaluationData evaluations = CardEvaluationData.createByAdding(
                 CardLibrary.getAllCards().stream().filter(card -> card.rarity == AbstractCard.CardRarity.RARE).collect(Collectors.toList()),
-                AbstractDungeon.actNum,
-                4
+                STARTING_ACT,
+                ENDING_ACT
             );
 
             float evaluation = 0;
@@ -112,8 +170,8 @@ public class NeowEventPatches {
         private static float evaluateRemovingACard() {
             CardEvaluationData evaluations = CardEvaluationData.createByRemoving(
                 AbstractDungeon.player.masterDeck.group,
-                AbstractDungeon.actNum,
-                4
+                STARTING_ACT,
+                ENDING_ACT
             );
 
             float skipEvaluation = StatEvaluation.determineWeightedScoreForCurrentAct(evaluations.getSkip());
@@ -124,8 +182,8 @@ public class NeowEventPatches {
         private static float evaluateUpgradingACard() {
             CardEvaluationData evaluations = CardEvaluationData.createByUpgrading(
                 AbstractDungeon.player.masterDeck.group,
-                AbstractDungeon.actNum,
-                4
+                STARTING_ACT,
+                ENDING_ACT
             );
 
             float skipEvaluation = StatEvaluation.determineWeightedScoreForCurrentAct(evaluations.getSkip());
@@ -136,8 +194,8 @@ public class NeowEventPatches {
         private static float evaluateAddingAColorlessCard() {
             CardEvaluationData evaluations = CardEvaluationData.createByAdding(
                 CardLibrary.getCardList(CardLibrary.LibraryType.COLORLESS),
-                AbstractDungeon.actNum,
-                4
+                STARTING_ACT,
+                ENDING_ACT
             );
 
             float evaluation = 0;
@@ -152,10 +210,8 @@ public class NeowEventPatches {
         }
 
         private static float evaluateTransformingACard() {
-            int startingAct = AbstractDungeon.actNum;
-            int endingAct = AbstractDungeon.actNum;
-
-            Set<String> enemies = CardEvaluationData.getAllEnemies(startingAct, endingAct);
+            int startingAct = STARTING_ACT;
+            int endingAct = ENDING_ACT;
 
             ArrayList<AbstractCard> transformCandidates = AbstractDungeon.player.masterDeck.group;
             float evaluation = 0;
@@ -224,8 +280,8 @@ public class NeowEventPatches {
         private static float evaluateAddingACommonRelic() {
             CardEvaluationData evaluations = CardEvaluationData.createByAddingRelic(
                 RelicLibrary.commonList,
-                AbstractDungeon.actNum,
-                4
+                STARTING_ACT,
+                ENDING_ACT
             );
 
             float evaluation = 0;
@@ -240,10 +296,8 @@ public class NeowEventPatches {
         }
 
         private static float evaluateRemovingTwoCards() {
-            int startingAct = AbstractDungeon.actNum;
-            int endingAct = AbstractDungeon.actNum;
-
-            Set<String> enemies = CardEvaluationData.getAllEnemies(startingAct, endingAct);
+            int startingAct = STARTING_ACT;
+            int endingAct = ENDING_ACT;
 
             float skipEvaluation = StatEvaluation.determineWeightedScoreForCurrentAct(new StatEvaluation(
                 AbstractDungeon.player.masterDeck.group,
@@ -256,7 +310,7 @@ public class NeowEventPatches {
             ));
 
             ArrayList<AbstractCard> transformCandidates = AbstractDungeon.player.masterDeck.group;
-            float maxEvaluation = 0;
+            float maxEvaluation = Float.NEGATIVE_INFINITY;
             for (int index1 = 0; index1 < AbstractDungeon.player.masterDeck.group.size(); index1++) {
                 AbstractCard card1ToRemove = AbstractDungeon.player.masterDeck.group.get(index1);
                 List<AbstractCard> newDeck = new ArrayList<>(AbstractDungeon.player.masterDeck.group);
@@ -286,10 +340,8 @@ public class NeowEventPatches {
         }
 
         private static float evaluateTransformingTwoCards() {
-            int startingAct = AbstractDungeon.actNum;
-            int endingAct = AbstractDungeon.actNum;
-
-            Set<String> enemies = CardEvaluationData.getAllEnemies(startingAct, endingAct);
+            int startingAct = STARTING_ACT;
+            int endingAct = ENDING_ACT;
 
             float skipEvaluation = StatEvaluation.determineWeightedScoreForCurrentAct(new StatEvaluation(
                 AbstractDungeon.player.masterDeck.group,
@@ -301,8 +353,7 @@ public class NeowEventPatches {
                 enemies
             ));
 
-            float evaluation = 0;
-            int count = 0;
+            float maxEvaluation = Float.NEGATIVE_INFINITY;
 
             ArrayList<AbstractCard> transformCandidates = AbstractDungeon.player.masterDeck.group;
 
@@ -319,6 +370,9 @@ public class NeowEventPatches {
                     newDeck2.remove(cardToTransform2);
 
                     ArrayList<AbstractCard> transformedIntoCandidates2 = CardLibrary.getCardList(convertCardColorToLibraryType(cardToTransform2.color));
+
+                    float evaluation = 0;
+                    int count = 0;
 
                     for (AbstractCard transformCandidate1 : transformedIntoCandidates1) {
                         for (AbstractCard transformCandidate2 : transformedIntoCandidates2) {
@@ -342,17 +396,19 @@ public class NeowEventPatches {
                             count++;
                         }
                     }
+
+                    maxEvaluation = Math.max(maxEvaluation, evaluation / count);
                 }
             }
 
-            return evaluation / count;
+            return maxEvaluation;
         }
 
         private static float evaluateAddingOneRareRelic() {
             CardEvaluationData evaluations = CardEvaluationData.createByAddingRelic(
                 RelicLibrary.rareList,
-                AbstractDungeon.actNum,
-                4
+                STARTING_ACT,
+                ENDING_ACT
             );
 
             float evaluation = 0;
@@ -367,12 +423,10 @@ public class NeowEventPatches {
         }
 
         private static float evaluateAddingThreeRareCards() {
-            int startingAct = AbstractDungeon.actNum;
-            int endingAct = AbstractDungeon.actNum;
+            int startingAct = STARTING_ACT;
+            int endingAct = ENDING_ACT;
 
             List<AbstractCard> rareCards = CardLibrary.getAllCards().stream().filter(card -> card.rarity == AbstractCard.CardRarity.RARE).collect(Collectors.toList());
-
-            Set<String> enemies = CardEvaluationData.getAllEnemies(startingAct, endingAct);
 
             float skipEvaluation = StatEvaluation.determineWeightedScoreForCurrentAct(new StatEvaluation(
                 AbstractDungeon.player.masterDeck.group,
@@ -421,7 +475,10 @@ public class NeowEventPatches {
         }
 
         private static float evaluateRemovingStartingRelicAndAddingARandomBossRelic() {
-            CardEvaluationData evaluations = CardEvaluationData.createByRemovingStartingRelicAndAddingARandomBossRelic(AbstractDungeon.actNum, 4);
+            CardEvaluationData evaluations = CardEvaluationData.createByRemovingStartingRelicAndAddingARandomBossRelic(
+                STARTING_ACT,
+                ENDING_ACT
+            );
 
             float evaluation = 0;
             for (StatEvaluation statEvaluation : evaluations.getEvals().values()) {
